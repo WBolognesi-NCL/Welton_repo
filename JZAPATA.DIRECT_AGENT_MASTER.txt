@@ -1,0 +1,200 @@
+DROP VIEW JZAPATA.DIRECT_AGENT_MASTER;
+
+/* Formatted on 2/5/2024 6:44:26 PM (QP5 v5.336) */
+CREATE OR REPLACE FORCE VIEW JZAPATA.DIRECT_AGENT_MASTER
+(
+    ID,
+    EMPLOYEE_NUMBER,
+    OPERATOR_CD,
+    FIRST_NAME,
+    LAST_NAME,
+    CMS_ID,
+    EMP_ROLL,
+    STATUS,
+    GOAL,
+    SB_GOAL,
+    LAST_MONTH,
+    LAST_MONTH_DISPLAYED,
+    BEST_MONTH,
+    BEST_MONTH_DISPLAYED,
+    EMAIL,
+    EXTENSION,
+    SUPERVISOR,
+    BUDDY_BOOKER,
+    LOCATION,
+    ROLE_NAM,
+    POSITION,
+    POSITION_CD,
+    EMP_STATE,
+    EXCLUDE_FROM_LOG,
+    EMP_STATUS,
+    COST_CENTER,
+    HIRE_DATE,
+    PHONE_START_DATE,
+    END_DATE,
+    SEPARATION_CODE,
+    SEPARATION_DATE,
+    ADDRESS,
+    CITY,
+    STATE,
+    ZIP,
+    CELL_NUMBER,
+    HOME_NUMBER,
+    ZONE
+)
+AS
+    (SELECT ID,
+            EMPLOYEE_NUMBER,
+            OPERATOR_CD,
+            FIRST_NAME,
+            LAST_NAME,
+            CMS_ID,
+            EMP_ROLL,
+            STATUS,
+            GOAL,
+            SB_GOAL,
+            LAST_MONTH,
+            LAST_MONTH_DISPLAYED,
+            BEST_MONTH,
+            BEST_MONTH_DISPLAYED,
+            EMAIL,
+            EXTENSION,
+            SUPERVISOR,
+            BUDDY_BOOKER,
+            LOCATION,
+            ROLE_NAM,
+            POSITION,
+            POSITION_CD,
+            EMP_STATE,
+            EXCLUDE_FROM_LOG,
+            EMP_STATUS,
+            COST_CENTER,
+            HIRE_DATE,
+            PHONE_START_DATE,
+            END_DATE,
+            SEPARATION_CODE,
+            SEPARATION_DATE,
+            ADDRESS,
+            CITY,
+            STATE,
+            ZIP,
+            CELL_NUMBER,
+            HOME_NUMBER,
+            ZONE
+       FROM (SELECT DISTINCT
+                    RANK ()
+                        OVER (PARTITION BY de.operator_cd
+                              ORDER BY ders.effective_to_dat DESC)
+                        rnk,
+                    NULL
+                        id,
+                    de.ncl_employee_id
+                        employee_number,
+                    de.operator_cd
+                        operator_cd,
+                    de.first_nam
+                        first_name,
+                    de.last_nam
+                        last_name,
+                    ders.cms_id_txt
+                        cms_id,
+                    NULL
+                        emp_roll,
+                    CASE
+                        WHEN eems.emp_status_cd = 'ACT'
+                        THEN
+                            DSDM.PKG_COMMON.get_skill_cd (
+                                'DS_SUPP',
+                                DSDM.PKG_COMMON.get_current_skill_id (
+                                    'DS_SUPP',
+                                    de.ds_emp_id))
+                        ELSE
+                            eems.emp_status_cd
+                    END
+                        status,
+                    ders.curr_month_goal_bookings_nbr
+                        goal,
+                    ders.adj_month_goal_bookings_nbr
+                        sb_goal,
+                    ders.last_month_bookings_nbr
+                        last_month,
+                    ders.last_month_adj_bookings_nbr
+                        last_month_displayed,
+                    ders.best_month_bookings_nbr
+                        best_month,
+                    ders.best_month_adj_bookings_nbr
+                        best_month_displayed,
+                    de.email_adr
+                        email,
+                    de.extension_nbr
+                        extension,
+                    sders.cms_id_txt
+                        supervisor,
+                    NULL
+                        buddy_booker,
+                    eolm.location_cd
+                        location,
+                    ddrs.role_nam
+                        role_nam,
+                    ddrs.department_nam
+                        position,
+                    eepm.position_cd
+                        position_cd,
+                    CASE
+                        WHEN UPPER (eolm.location_cd) IN
+                                 ('MIAMI', 'SAWGRASS')
+                        THEN
+                            'FL'
+                        WHEN UPPER (eolm.location_cd) = 'MESA'
+                        THEN
+                            'AZ'
+                        ELSE
+                            NULL
+                    END
+                        emp_state,
+                    ders.exclude_from_log_cd
+                        exclude_from_log,
+                    eems.emp_status_desc
+                        emp_status,
+                    ders.cost_center_cd
+                        cost_center,
+                    de.hire_dat
+                        hire_date,
+                    ders.effective_from_dat
+                        phone_start_date,
+                    ders.effective_to_dat
+                        end_date,
+                    NULL
+                        separation_code,
+                    NULL
+                        separation_date,
+                    de.address1_adr
+                        address,
+                    de.city_nam
+                        city,
+                    de.state_cd
+                        state,
+                    de.zip_cd
+                        zip,
+                    de.cell_phone_nbr
+                        cell_number,
+                    de.home_phone_nbr
+                        home_number,
+                    NULL
+                        zone
+               FROM ds_supp.ds_emp_supp                    de,
+                    ds_supp.ds_emp_supp                    sde,
+                    ds_supp.ds_emp_roles_supp              sders,
+                    ds_supp.ds_emp_roles_supp              ders,
+                    ds_supp.eip_emp_master_status_supp     eems,
+                    ds_supp.eip_emp_positions_master_supp  eepm,
+                    ds_supp.eip_offc_location_master_supp  eolm,
+                    ds_supp.ds_department_roles_supp       ddrs
+              WHERE     de.ds_emp_id = ders.ds_emp_id(+)
+                    AND de.emp_status_id = eems.emp_status_id(+)
+                    AND ders.position_id = eepm.position_id(+)
+                    AND ders.location_id = eolm.location_id(+)
+                    AND ders.supervisor_emp_id = sde.ds_emp_id(+)
+                    AND sders.ds_emp_id(+) = sde.ds_emp_id
+                    AND ders.ds_dept_role_id = ddrs.ds_dept_role_id(+))
+      WHERE rnk = 1);
