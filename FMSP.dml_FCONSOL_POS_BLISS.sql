@@ -9,7 +9,11 @@
 =====================================================================
 */
 
+/****** NEW LINE *****/
 
+
+
+	
 DELETE FROM fconsol.pos fp
 WHERE fp.pos_shp_id = 69
 AND fp.POS_SDAT >= to_date('2023-09-21','YYYY-MM-DD');
